@@ -4,7 +4,13 @@ Created on Wed Apr 24 14:29:15 2013
 
 @author: lepse
 """
+from __future__ import division
+from __future__ import print_function
 
+from builtins import str
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import pandas
 import pytz
 from datetime import datetime, timedelta
@@ -22,7 +28,7 @@ def septo3d_reader(data_file):
         """ Convert the 'An', 'Jour' and 'hhmm' variables of the
         meteo dataframe in a datetime object (%Y-%m-%d %H:%M:%S format)
         """
-        an, jour, heure = [int(x) for x in [yr, doy, int(hr) / 100]]
+        an, jour, heure = [int(x) for x in [yr, doy, old_div(int(hr), 100)]]
         dt = datetime(an - 1, 12, 31)
         delta = timedelta(days=jour, hours=heure)
         return dt + delta
@@ -61,7 +67,7 @@ def global_to_PPFD(data):
 def Psat(T):
     """ Saturating water vapor pressure (kPa) at temperature T (Celcius) with Tetens formula
     """
-    return 0.6108 * numpy.exp(17.27 * T / (237.3 + T))
+    return 0.6108 * numpy.exp(old_div(17.27 * T, (237.3 + T)))
 
 
 def humidity_to_vapor_pressure(data):
@@ -116,8 +122,8 @@ class Weather(object):
         else:
             self.data = reader(data_file)
             date = self.data['date']
-            date = map(lambda x: self.timezone.localize(x), date)
-            utc = map(lambda x: x.astimezone(pytz.utc), date)
+            date = [self.timezone.localize(x) for x in date]
+            utc = [x.astimezone(pytz.utc) for x in date]
             self.data.index = utc
             self.data.index.name = 'date_utc'
 
@@ -181,7 +187,7 @@ class Weather(object):
             if v in self.data.columns:
                 check.append(True)
             else:
-                if v in models.keys():
+                if v in list(models.keys()):
                     values = models[v](self.data, **args.get(v, {}))
                     self.data[v] = values
                     check.append(True)
@@ -235,7 +241,7 @@ def weather_node(weather_path):
 def weather_check_node(weather, vars, models):
     ok = weather.check(vars, models)
     if not numpy.all(ok):
-        print "weather_check: warning, missing  variables!!!"
+        print("weather_check: warning, missing  variables!!!")
     return weather
 
 
@@ -260,7 +266,7 @@ def sample_weather(periods=24):
     import astk_data
     from path import Path
 
-    meteo_path = Path(astk_data.__path__[0])/'meteo00-01.txt'
+    meteo_path = old_div(Path(astk_data.__path__[0]),'meteo00-01.txt')
     #meteo_path = shared_data(alinea.septo3d, 'meteo00-01.txt')
     t_deb = "2000-10-01 01:00:00"
     seq = pandas.date_range(start="2000-10-02", periods=periods, freq='H')

@@ -14,7 +14,10 @@
 """ A collection of equation for modelling sun position, sun irradiance and sky
 irradiance
 """
+from __future__ import division
 
+from builtins import map
+from past.utils import old_div
 import numpy
 import pandas
 from alinea.astk.meteorology.sky_irradiance import sky_irradiances, \
@@ -40,11 +43,11 @@ def cie_luminance_gradation(sky_elevation, a, b):
     elevation : elevation angle of the sky element (rad)
     a, b : coefficient for the type of sky
     """
-    z = numpy.pi / 2 - numpy.array(sky_elevation)
+    z = old_div(numpy.pi, 2) - numpy.array(sky_elevation)
     phi_0 = 1 + a * numpy.exp(b)
     phi_z = numpy.where(sky_elevation == 0, 1,
-                        1 + a * numpy.exp(b / numpy.cos(z)))
-    return phi_z / phi_0
+                        1 + a * numpy.exp(old_div(b, numpy.cos(z))))
+    return old_div(phi_z, phi_0)
 
 
 def cie_scattering_indicatrix(sun_azimuth, sun_elevation, sky_azimuth,
@@ -58,8 +61,8 @@ def cie_scattering_indicatrix(sun_azimuth, sun_elevation, sky_azimuth,
     elevation : elevation angle of the sky element (rad)
     d, e : coefficient for the type of sky
     """
-    z = numpy.pi / 2 - numpy.array(sky_elevation)
-    zs = numpy.pi / 2 - numpy.array(sun_elevation)
+    z = old_div(numpy.pi, 2) - numpy.array(sky_elevation)
+    zs = old_div(numpy.pi, 2) - numpy.array(sun_elevation)
     alpha = numpy.array(sky_azimuth)
     alpha_s = numpy.array(sun_azimuth)
     ksi = numpy.arccos(
@@ -67,13 +70,13 @@ def cie_scattering_indicatrix(sun_azimuth, sun_elevation, sky_azimuth,
             numpy.abs(alpha - alpha_s)))
 
     f_ksi = 1 + c * (
-    numpy.exp(d * ksi) - numpy.exp(d * numpy.pi / 2)) + e * numpy.power(
+    numpy.exp(d * ksi) - numpy.exp(old_div(d * numpy.pi, 2))) + e * numpy.power(
         numpy.cos(ksi), 2)
     f_zs = 1 + c * (
-    numpy.exp(d * zs) - numpy.exp(d * numpy.pi / 2)) + e * numpy.power(
+    numpy.exp(d * zs) - numpy.exp(old_div(d * numpy.pi, 2))) + e * numpy.power(
         numpy.cos(zs), 2)
 
-    return f_ksi / f_zs
+    return old_div(f_ksi, f_zs)
 
 
 def cie_relative_luminance(sky_elevation, sky_azimuth=None, sun_elevation=None,
@@ -88,7 +91,7 @@ def cie_relative_luminance(sky_elevation, sky_azimuth=None, sun_elevation=None,
 
     if type == 'clear_sky' and (
                 sun_elevation is None or sun_azimuth is None or sky_azimuth is None):
-        raise ValueError, 'Clear sky requires sun position'
+        raise ValueError('Clear sky requires sun position')
 
     if type == 'soc':
         return cie_luminance_gradation(sky_elevation, 4, -0.7)
@@ -100,7 +103,7 @@ def cie_relative_luminance(sky_elevation, sky_azimuth=None, sun_elevation=None,
             sun_azimuth, sun_elevation, sky_azimuth, sky_elevation, 10, -3,
             0.45)
     else:
-        raise ValueError, 'Unknown sky type'
+        raise ValueError('Unknown sky type')
 
 
 def sky_discretisation(turtle_sectors=46, nb_az=None, nb_el=None):
@@ -289,7 +292,7 @@ def sky_sources(sky_type='soc', irradiance=1, turtle_sectors=46, dates=None, day
             irradiance = sum(c_sky['dhi'])
 
         # temporal weigths : use dhi (diffuse horizontal irradiance)
-        c_sky['wsky'] = c_sky['dhi'] / sum(c_sky['dhi'])
+        c_sky['wsky'] = old_div(c_sky['dhi'], sum(c_sky['dhi']))
         source_irradiance = numpy.zeros_like(source_fraction)
         for i, row in c_sky.iterrows():
             rad = sky_radiance_distribution(source_elevation, source_azimuth,
@@ -320,7 +323,7 @@ def sun_fraction(sky):
     Returns:
         integrated sun fraction
     """
-    return (sky['ghi'] - sky['dhi']).sum() / sky['ghi'].sum()
+    return old_div((sky['ghi'] - sky['dhi']).sum(), sky['ghi'].sum())
 
 
 def sky_blend(sky, f_sun=0.):
@@ -337,10 +340,10 @@ def sky_blend(sky, f_sun=0.):
         f_sun: (float) sun mixing fraction for the sun (default 0)
     """
     def _f_clear(clearness_index):
-        return min(1, (clearness_index - 1) / (1.41 - 1))
-    f_clear = numpy.array(map(_f_clear, sky['clearness']))
+        return min(1, old_div((clearness_index - 1), (1.41 - 1)))
+    f_clear = numpy.array(list(map(_f_clear, sky['clearness'])))
     # temporal integration
-    fclear = (f_clear * sky['ghi']).sum() / sky['ghi'].sum()
+    fclear = old_div((f_clear * sky['ghi']).sum(), sky['ghi'].sum())
     f_clear_sky = fclear * (1 - f_sun)
     f_soc = (1 - fclear) * (1 - f_sun)
 

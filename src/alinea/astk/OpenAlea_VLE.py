@@ -1,5 +1,6 @@
 """ A generic module embeding an OpenAlea model for use in VLE Platform
 """
+from __future__ import print_function
 
 # -*- coding:utf-8 -*-
 
@@ -36,17 +37,17 @@ class OpenAlea(PyDynamics.Dynamics):
         self.out_names = [d['name'] for d in node_factory.outputs]
         self.outputs = self.eval(**self.eval_args)
         # set model parameters, if any
-        for k in self.conditions.keys():
-            if k in self.eval_args.keys():
+        for k in list(self.conditions.keys()):
+            if k in list(self.eval_args.keys()):
                 self.eval_args[k] = self.conditions[k]
 
-        if "delay" in self.conditions.keys():
+        if "delay" in list(self.conditions.keys()):
             self.p_delay = self.conditions["delay"]
-            print "Le 'delay' est de : ", self.p_delay
+            print("Le 'delay' est de : ", self.p_delay)
         else:
             self.p_delay = 1.0
 
-        print ""
+        print("")
 
     def init(self, time):
         pass
@@ -86,9 +87,9 @@ class OpenAlea(PyDynamics.Dynamics):
 
     def internalTransition(self, time):
 
-        for d in self.ports.values():
-            for k in d.keys():
-                if k in self.eval_args.keys():
+        for d in list(self.ports.values()):
+            for k in list(d.keys()):
+                if k in list(self.eval_args.keys()):
                     self.eval_args[k] = d[k]
 
         self.outputs = self.eval(**self.eval_args)
